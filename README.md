@@ -6,14 +6,15 @@ The following are required to use this:
 - Adafruit HUZZAH Breakout or other compatible ESP8266
 - Power supply
 - RGB LED strip
-- BMP085/BMP180
+- a BMP085 or BMP180 temperature and pressure sensor (I tested this with BMP180)
 - 3 MOSFETs for each color
 - openHAMS server
 Circuits are available for Fritzing in the repo. 
 
 ##Features
-- change LED color via `rgbled/set`
-- confirmation of color change via `rgbled/status`
+- change LED color via `/rgbled/set`
+- confirmation of color change via `/rgbled/status`
+- publishing pressure and temperature via `/sensors/bmp180/pressure` and `/sensors/bmp180/temperature`
 
 ##Thanks
 - [ESP8266 core for Arduino](https://github.com/esp8266/Arduino)
