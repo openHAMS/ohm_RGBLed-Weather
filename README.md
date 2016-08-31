@@ -1,4 +1,4 @@
-# OHM: RGBLed + Weather
+# OHM: RGBLed + Weather v1.0.0
 An ESP8266 RGB led controller and weather publisher module for openHAMS
 
 ##Dependencies
