@@ -38,6 +38,11 @@ void sendTemp(long a, float t)
 	String(t).toCharArray(temp, sizeof(temp));
 	mqttClient.publish("rcr/rcr/desk/sensors/bmp180/pressure"   , 1, true, atm );
 	mqttClient.publish("rcr/rcr/desk/sensors/bmp180/temperature", 1, true, temp);
+#if DEBUG == 1
+	Serial.print(atm);
+	Serial.print(" ");
+	Serial.println(temp);
+#endif
 }
 
 
@@ -76,12 +81,45 @@ void onMqttUnsubscribe(uint16_t packetId)
 
 void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
+#if DEBUG == 1
+	Serial.println("** Publish received **");
+	Serial.print("  payload: ");
+	Serial.println(payload);
+	Serial.print("  color: ");
+	Color color = ColorParse(payload);
+	Serial.print(color.R);
+	Serial.print(":");
+	Serial.print(color.G);
+	Serial.print(":");
+	Serial.print(color.B);
+	Serial.print(":");
+	Serial.println(color.A);
+	Serial.print("  topic: ");
+	Serial.println(topic);
+	Serial.print("  qos: ");
+	Serial.println(properties.qos);
+	Serial.print("  dup: ");
+	Serial.println(properties.dup);
+	Serial.print("  retain: ");
+	Serial.println(properties.retain);
+	Serial.print("  len: ");
+	Serial.println(len);
+	Serial.print("  index: ");
+	Serial.println(index);
+	Serial.print("  total: ");
+	Serial.println(total);
+#endif
 	led.setColor(ColorParse(payload));
 	mqttClient.publish("rcr/rcr/desk/rgbled/status", 1, true, payload);
 }
 
 void onMqttPublish(uint16_t packetId)
 {
+#if DEBUG == 1
+		Serial.println("** Publish acknowledged **");
+		Serial.print("  packetId: ");
+		Serial.println(packetId);
+#endif
 }
 
 void setup()
