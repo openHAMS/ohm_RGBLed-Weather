@@ -3,14 +3,14 @@
 #include <AsyncMqttClient.h>
 #include <stdlib.h>
 
-#include <DNSServer.h>            //Local DNS Server used for redirecting all requests to the configuration portal
-#include <ESP8266WebServer.h>     //Local WebServer used to serve the configuration portal
-#include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
+#include <WiFiManager.h>
 
 #include <Task.h>
 #include <Sodaq_BMP085.h>
 #include "taskBmp180.hpp"
-#include "taskMqttReconnect.hpp"
+#include "taskMqttConnect.hpp"
 
 #include "Color.hpp"
 #include "RGBLed.hpp"
@@ -18,8 +18,9 @@
 
 #define DEBUG        0
 
-#define ALTITUDE   210 // Altitude via GPS - Miskolc, Diósgyőr
+#define ALTITUDE   210  // Altitude via GPS - Miskolc, Diósgyőr
 
+// LED pins
 #define LED_RED     12
 #define LED_GREEN   14
 #define LED_BLUE    13
@@ -48,8 +49,7 @@ TaskManager taskManager;
 void sendData(long a, float t);
 // Tasks
 TaskReadWeather taskReadWeather(sendData, ALTITUDE, MsToTaskTime(1000));
-TaskReconnect taskReconnect(&mqttClient, MsToTaskTime(2500));
-//TaskReconnect taskReconnect(MsToTaskTime(1000));
+TaskMqttConnect taskMqttConnect(&mqttClient, MsToTaskTime(2500));
 
 // Mqtt addresses
 char atmAddr    [] = "home/rcr/sensors/bmp180/pressure";
@@ -57,6 +57,9 @@ char tempAddr   [] = "home/rcr/sensors/bmp180/temperature";
 char ledAddr    [] = "home/rcr/lights/rgbled/desk";
 
 char deviceAddr [] = "status/huzzah1";
+char clientID   [] = "huzzah1";
+IPAddress mqttIP = IPAddress(192, 168, 1, 200);
+uint16_t mqttPort = 1883;
 
 
 void sendData(long a, float t)
@@ -76,8 +79,9 @@ void sendData(long a, float t)
 void onMqttConnect(bool sessionPresent)
 {
     //////// WARNING ///////////////////////////////////////////////////////////
-    taskManager.StopTask(&taskReconnect);
-    //////// THIS LINE MAY BE SHITTY ///////////////////////////////////////////////
+    taskManager.StopTask(&taskMqttConnect);
+    //////// THIS LINE MAY BE SHITTY ///////////////////////////////////////////
+    //////// Do not stop a task before starting (this is okay cuz setup() starts it)
 
     Serial.println("[MQTT] Connected!");
     uint16_t packetIdSub = mqttClient.subscribe(ledAddr, 1);
@@ -93,7 +97,7 @@ void onMqttConnect(bool sessionPresent)
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
     Serial.println("[MQTT] Disconnected...");
-    taskManager.StartTask(&taskReconnect);
+    taskManager.StartTask(&taskMqttConnect);
     taskManager.StopTask(&taskReadWeather);
 }
 
@@ -169,17 +173,7 @@ void setup()
 
     Serial.print("[WiFi] Connecting...");
     WiFiManager wifiManager;
-    wifiManager.autoConnect("Huzzah-1");
-
-    //WiFi.persistent(false);
-    //WiFi.mode(WIFI_STA);
-    //WiFi.begin(WIFI_SSID, WIFI_PASS);
-
-    // while (WiFi.status() != WL_CONNECTED)
-    // {
-    //     delay(500);
-    //     Serial.print(".");
-    // }
+    wifiManager.autoConnect();
 
     Serial.println("[WiFi] Connected!");
 
@@ -189,13 +183,10 @@ void setup()
     mqttClient.onUnsubscribe(onMqttUnsubscribe);
     mqttClient.onMessage(onMqttMessage);
     mqttClient.onPublish(onMqttPublish);
-    mqttClient.setServer(IPAddress(192, 168, 1, 200), 1883);
-    // mqttClient.setKeepAlive(5).setWill("topic/online", 2, true, "no").setCredentials("username", "password").setClientId("myDevice");
-    mqttClient.setKeepAlive(15).setWill(deviceAddr, 1, true, "0", 0).setClientId("huzzah1");
+    mqttClient.setServer(mqttIP, mqttPort);
+    mqttClient.setKeepAlive(15).setWill(deviceAddr, 1, true, "0", 0).setClientId(clientID);
     taskManager.Setup();
-    taskManager.StartTask(&taskReconnect);
-    //taskManager.StartTask(&taskReadWeather);
-    //taskManager.StartTask(&taskReconnect);  // idk why, but not working without this ¯\_(ツ)_/¯
+    taskManager.StartTask(&taskMqttConnect);
 }
 
 void loop()

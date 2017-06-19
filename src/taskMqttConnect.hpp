@@ -3,10 +3,10 @@
 
 #include <AsyncMqttClient.h>
 
-class TaskReconnect : public Task
+class TaskMqttConnect : public Task
 {
 public:
-    TaskReconnect(AsyncMqttClient* mqttClient, uint32_t timeInterval):
+    TaskMqttConnect(AsyncMqttClient* mqttClient, uint32_t timeInterval):
         Task(timeInterval)
     {
         _mqttClient = mqttClient;
