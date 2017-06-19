@@ -3,16 +3,19 @@
 #include <AsyncMqttClient.h>
 #include <stdlib.h>
 
+#include <DNSServer.h>            //Local DNS Server used for redirecting all requests to the configuration portal
+#include <ESP8266WebServer.h>     //Local WebServer used to serve the configuration portal
+#include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager WiFi Configuration Magic
+
 #include <Task.h>
 #include <Sodaq_BMP085.h>
 #include "taskBmp180.hpp"
+#include "taskMqttReconnect.hpp"
 
 #include "Color.hpp"
 #include "RGBLed.hpp"
 
 
-#define WIFI_SSID	"<SSID>"
-#define WIFI_PASS	"<PASS>"
 #define DEBUG        0
 
 #define ALTITUDE   210 // Altitude via GPS - Miskolc, Diósgyőr
@@ -41,39 +44,57 @@ AsyncMqttClient mqttClient;
 RGBLed led = RGBLed(LED_RED, LED_GREEN, LED_BLUE);
 
 TaskManager taskManager;
-void sendTemp(long a, float t);
-TaskReadWeather taskReadWeather(sendTemp, ALTITUDE, MsToTaskTime(1000));
+// Callbacks
+void sendData(long a, float t);
+// Tasks
+TaskReadWeather taskReadWeather(sendData, ALTITUDE, MsToTaskTime(1000));
+TaskReconnect taskReconnect(&mqttClient, MsToTaskTime(2500));
+//TaskReconnect taskReconnect(MsToTaskTime(1000));
 
-char temp[6];
-char atm[6];
+// Mqtt addresses
+char atmAddr    [] = "home/rcr/sensors/bmp180/pressure";
+char tempAddr   [] = "home/rcr/sensors/bmp180/temperature";
+char ledAddr    [] = "home/rcr/lights/rgbled/desk";
 
-void sendTemp(long a, float t)
+char deviceAddr [] = "status/huzzah1";
+
+
+void sendData(long a, float t)
 {
-	String(a).toCharArray(atm, sizeof(atm));
-	String(t).toCharArray(temp, sizeof(temp));
-	mqttClient.publish("rcr/rcr/desk/sensors/bmp180/pressure"   , 1, true, atm );
-	mqttClient.publish("rcr/rcr/desk/sensors/bmp180/temperature", 1, true, temp);
+    char atm [8];
+    char temp[8];
+    String(a / 100.0).toCharArray(atm, sizeof(atm));
+    String(t).toCharArray(temp, sizeof(temp));
+    mqttClient.publish(atmAddr, 1, true, atm);
+    mqttClient.publish(tempAddr, 1, true, temp);
     #if DEBUG == 1
         Serial.println("[DEBUG]->sendData: atm: " + String(atm) + ", temp: " + String(temp));
     #endif
 }
 
 
-void onMqttConnect()
+void onMqttConnect(bool sessionPresent)
 {
-	uint16_t packetIdSub = mqttClient.subscribe("rcr/rcr/desk/rgbled/set", 1);
+    //////// WARNING ///////////////////////////////////////////////////////////
+    taskManager.StopTask(&taskReconnect);
+    //////// THIS LINE MAY BE SHITTY ///////////////////////////////////////////////
+
     Serial.println("[MQTT] Connected!");
+    uint16_t packetIdSub = mqttClient.subscribe(ledAddr, 1);
     #if DEBUG == 1
         Serial.println("  [DEBUG] Subscribing at QoS 1, packetId: ");
         Serial.println(packetIdSub);
     #endif
+    mqttClient.publish(deviceAddr, 1, true, "1");
+
+    taskManager.StartTask(&taskReadWeather);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
-	Serial.println("** Disconnected from the broker **");
-	Serial.println("Reconnecting to MQTT...");
-	mqttClient.connect();
+    Serial.println("[MQTT] Disconnected...");
+    taskManager.StartTask(&taskReconnect);
+    taskManager.StopTask(&taskReadWeather);
 }
 
 void onMqttSubscribe(uint16_t packetId, uint8_t qos)
@@ -138,41 +159,46 @@ void onMqttPublish(uint16_t packetId)
 
 void setup()
 {
-	pinMode(LED_RED, OUTPUT);
-	pinMode(LED_GREEN, OUTPUT);
-	pinMode(LED_BLUE, OUTPUT);
+    pinMode(LED_RED, OUTPUT);
+    pinMode(LED_GREEN, OUTPUT);
+    pinMode(LED_BLUE, OUTPUT);
 
-	Serial.begin(115200);
-	Serial.println();
-	Serial.println();
-	WiFi.persistent(false);
-	WiFi.mode(WIFI_STA);
-	Serial.print("Connecting to Wi-Fi");
-	WiFi.begin(WIFI_SSID, WIFI_PASS);
+    Serial.begin(115200);
+    Serial.println();
+    Serial.println();
 
-	while (WiFi.status() != WL_CONNECTED)
-	{
-		delay(500);
-		Serial.print(".");
-	}
+    Serial.print("[WiFi] Connecting...");
+    WiFiManager wifiManager;
+    wifiManager.autoConnect("Huzzah-1");
 
-	Serial.println(" OK");
+    //WiFi.persistent(false);
+    //WiFi.mode(WIFI_STA);
+    //WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-	mqttClient.onConnect(onMqttConnect);
-	mqttClient.onDisconnect(onMqttDisconnect);
-	mqttClient.onSubscribe(onMqttSubscribe);
-	mqttClient.onUnsubscribe(onMqttUnsubscribe);
-	mqttClient.onMessage(onMqttMessage);
-	mqttClient.onPublish(onMqttPublish);
-	mqttClient.setServer(IPAddress(192, 168, 1, 111), 1883);
-	mqttClient.setKeepAlive(5).setWill("topic/online", 2, true, "no").setCredentials("username", "password").setClientId("myDevice");
-	Serial.print("Connecting to MQTT...");
-	mqttClient.connect();
-	Serial.println("Connected!");
-	taskManager.StartTask(&taskReadWeather);
+    // while (WiFi.status() != WL_CONNECTED)
+    // {
+    //     delay(500);
+    //     Serial.print(".");
+    // }
+
+    Serial.println("[WiFi] Connected!");
+
+    mqttClient.onConnect(onMqttConnect);
+    mqttClient.onDisconnect(onMqttDisconnect);
+    mqttClient.onSubscribe(onMqttSubscribe);
+    mqttClient.onUnsubscribe(onMqttUnsubscribe);
+    mqttClient.onMessage(onMqttMessage);
+    mqttClient.onPublish(onMqttPublish);
+    mqttClient.setServer(IPAddress(192, 168, 1, 200), 1883);
+    // mqttClient.setKeepAlive(5).setWill("topic/online", 2, true, "no").setCredentials("username", "password").setClientId("myDevice");
+    mqttClient.setKeepAlive(15).setWill(deviceAddr, 1, true, "0", 0).setClientId("huzzah1");
+    taskManager.Setup();
+    taskManager.StartTask(&taskReconnect);
+    //taskManager.StartTask(&taskReadWeather);
+    //taskManager.StartTask(&taskReconnect);  // idk why, but not working without this ¯\_(ツ)_/¯
 }
 
 void loop()
 {
-	taskManager.Loop();
+    taskManager.Loop();
 }

@@ -5,59 +5,45 @@
 
 class TaskReadWeather : public Task
 {
-	public:
-		typedef void(*action)(long a, float t);
-		TaskReadWeather(action function, unsigned int alt, uint32_t timeInterval) : // pass any custom arguments you need
-			Task(timeInterval),
-			altitude(alt),
-			_callback(function)
-		{ };
+public:
+    typedef void(*action)(long a, float t);
+    TaskReadWeather(action function, unsigned int alt, uint32_t timeInterval):
+        Task(timeInterval),
+        _ALTITUDE(alt),
+        _callback(function)
+    {
+        _sensor.begin();
+    }
 
-	private:
-		// put member variables here that are scoped to this object
-		const action _callback;
-		const unsigned int altitude;
-		Sodaq_BMP085 sensor;
+private:
+    const action _callback;
+    const unsigned int _ALTITUDE;
+    Sodaq_BMP085 _sensor;
 
-		//bool ledOn;
-		//const uint8_t ledPin = 5; // const means can't change other than in constructor
+    int counter;
 
-		virtual bool OnStart() // optional
-		{
-			/*
-			// put code here that will be run when the task starts
-			ledOn = false;
-			pinMode(ledPin, OUTPUT);
-			return true;
-			*/
-			sensor.begin();
-		}
+    virtual bool OnStart()
+    {
+        #if DEBUG == 1
+            Serial.println("[SENSOR] task started...");
+        #endif
+    }
 
-		virtual void OnStop() // optional
-		{
-			/*
-			// put code here that will be run when the task stops
-			ledOn = false;
-			digitalWrite(ledPin, LOW);	// turn the LED off by making the voltage LOW
-			*/
-		}
+    virtual void OnStop()
+    {
+        #if DEBUG == 1
+            Serial.println("[SENSOR] task stopped.");
+        #endif
+    }
 
-		virtual void OnUpdate(uint32_t deltaTime)
-		{
-			/*
-			if (ledOn)
-			{
-				digitalWrite(ledPin, LOW);	// turn the LED off by making the voltage LOW
-			}
-			else
-			{
-				digitalWrite(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
-			}
-
-			ledOn = !ledOn; // toggle led state
-			*/
-			float t = sensor.readTemperature();
-			long a = sensor.readPressure(altitude);
-			_callback(a, t);
-		}
+    virtual void OnUpdate(uint32_t deltaTime)
+    {
+        #if DEBUG == 1
+            Serial.println("[SENSOR] update " + counter);
+        #endif
+        counter++;
+        float t = _sensor.readTemperature();
+        long a = _sensor.readPressure(_ALTITUDE);
+        _callback(a, t);
+    }
 };
