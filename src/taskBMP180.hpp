@@ -39,7 +39,9 @@ private:
     virtual void OnUpdate(uint32_t deltaTime)
     {
         #if DEBUG == 1
-            Serial.println("[SENSOR] update " + counter);
+            Serial.print("[SENSOR] update ");
+            Serial.print(counter);
+            Serial.println();
         #endif
         counter++;
         float t = _sensor.readTemperature();

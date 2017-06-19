@@ -71,7 +71,11 @@ void sendData(long a, float t)
     mqttClient.publish(atmAddr, 1, true, atm);
     mqttClient.publish(tempAddr, 1, true, temp);
     #if DEBUG == 1
-        Serial.println("[DEBUG]->sendData: atm: " + String(atm) + ", temp: " + String(temp));
+        Serial.print("[DEBUG]->sendData: atm: ");
+        Serial.print(atm);
+        Serial.print(", temp: ");
+        Serial.print(temp);
+        Serial.println();
     #endif
 }
 
@@ -86,8 +90,9 @@ void onMqttConnect(bool sessionPresent)
     Serial.println("[MQTT] Connected!");
     uint16_t packetIdSub = mqttClient.subscribe(ledAddr, 1);
     #if DEBUG == 1
-        Serial.println("  [DEBUG] Subscribing at QoS 1, packetId: ");
-        Serial.println(packetIdSub);
+        Serial.print("  [DEBUG] Subscribing at QoS 1, packetId: ");
+        Serial.print(packetIdSub);
+        Serial.println();
     #endif
     mqttClient.publish(deviceAddr, 1, true, "1");
 
@@ -105,7 +110,11 @@ void onMqttSubscribe(uint16_t packetId, uint8_t qos)
 {
     Serial.println("[MQTT] Subscribed.");
     #if DEBUG == 1
-        Serial.println("  [DEBUG] packetId: " + packetId + ", qos: " + qos);
+        Serial.print("  [DEBUG] packetId: " );
+        Serial.print(packetId);
+        Serial.print(", qos: ");
+        Serial.print(qos);
+        Serial.println();
     #endif
 }
 
@@ -113,7 +122,9 @@ void onMqttUnsubscribe(uint16_t packetId)
 {
     Serial.println("[MQTT] Unsubscribed.");
     #if DEBUG == 1
-        Serial.println("  [DEBUG] packetId: " + packetId);
+        Serial.println("  [DEBUG] packetId: ");
+        Serial.print(packetId);
+        Serial.println();
     #endif
 }
 
@@ -157,7 +168,9 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
 void onMqttPublish(uint16_t packetId)
 {
     #if DEBUG == 1
-        Serial.println("[MQTT] Message Sent, packetId: " + packetId);
+        Serial.print("  [MQTT] Message Sent, packetId: ");
+        Serial.print(packetId);
+        Serial.println();
     #endif
 }
 
@@ -171,7 +184,7 @@ void setup()
     Serial.println();
     Serial.println();
 
-    Serial.print("[WiFi] Connecting...");
+    Serial.println("[WiFi] Connecting...");
     WiFiManager wifiManager;
     wifiManager.autoConnect();
 

@@ -33,7 +33,10 @@ private:
 
     virtual void OnUpdate(uint32_t deltaTime)
     {
-        Serial.println("[MQTT] Connecting... (" + String(counter) + ")");
+        Serial.print("[MQTT] Connecting... (");
+        Serial.print(counter);
+        Serial.print(")");
+        Serial.println();
         counter++;
         _mqttClient->connect();
     }
