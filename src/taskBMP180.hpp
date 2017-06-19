@@ -24,9 +24,11 @@ private:
 
     virtual bool OnStart()
     {
+        counter = 0;
         #if DEBUG == 1
             Serial.println("[SENSOR] task started...");
         #endif
+        return true;
     }
 
     virtual void OnStop()

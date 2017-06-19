@@ -22,6 +22,7 @@ private:
         #if DEBUG == 1
             Serial.println("[MQTT-RE] task started...");
         #endif
+        return true;
     }
 
     virtual void OnStop()
