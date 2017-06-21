@@ -8,7 +8,6 @@
 #include <WiFiManager.h>
 
 #include <Task.h>
-#include <Sodaq_BMP085.h>
 #include "taskBmp180.hpp"
 #include "taskMqttConnect.hpp"
 
@@ -61,7 +60,6 @@ char clientID   [] = "huzzah1";
 IPAddress mqttIP = IPAddress(192, 168, 1, 200);
 uint16_t mqttPort = 1883;
 
-
 void sendData(long a, float t)
 {
     char atm [8];
@@ -82,10 +80,7 @@ void sendData(long a, float t)
 
 void onMqttConnect(bool sessionPresent)
 {
-    //////// WARNING ///////////////////////////////////////////////////////////
     taskManager.StopTask(&taskMqttConnect);
-    //////// THIS LINE MAY BE SHITTY ///////////////////////////////////////////
-    //////// Do not stop a task before starting (this is okay cuz setup() starts it)
 
     Serial.println("[MQTT] Connected!");
     uint16_t packetIdSub = mqttClient.subscribe(ledAddr, 1);
@@ -197,7 +192,8 @@ void setup()
     mqttClient.onMessage(onMqttMessage);
     mqttClient.onPublish(onMqttPublish);
     mqttClient.setServer(mqttIP, mqttPort);
-    mqttClient.setKeepAlive(15).setWill(deviceAddr, 1, true, "0", 0).setClientId(clientID);
+    mqttClient.setKeepAlive(10).setWill(deviceAddr, 1, true, "0", 0).setClientId(clientID);
+
     taskManager.Setup();
     taskManager.StartTask(&taskMqttConnect);
 }
