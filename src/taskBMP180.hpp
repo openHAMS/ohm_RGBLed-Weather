@@ -1,36 +1,30 @@
+#ifndef TASKBMP180_HPP
+#define TASKBMP180_HPP
+
 #include <Arduino.h>
 #include <Task.h>
 #include <Wire.h>
 #include <Sodaq_BMP085.h>
+#include <ExpFilter.h>
 
 class TaskReadWeather : public Task
 {
-	public:
-		typedef void(*action)(long a, float t);
-		TaskReadWeather(action function, unsigned int alt, uint32_t timeInterval) : // pass any custom arguments you need
-			Task(timeInterval),
-			altitude(alt),
-			_callback(function)
-		{ };
+public:
+    typedef void(*action)(long a, float t);
+    TaskReadWeather(action function, uint16_t alt, uint32_t timeInterval);
 
-	private:
-		const action _callback;
-		const unsigned int altitude;
-		Sodaq_BMP085 sensor;
+private:
+    const action callback;
+    const uint16_t ALTITUDE;
+    int counter;
+    bool filterInited = false;
+    Sodaq_BMP085 sensor;
+    ExpFilter<long> atmFilter;
+    ExpFilter<float> tempFilter;
 
-		virtual bool OnStart() // optional
-		{
-			sensor.begin();
-		}
-
-		virtual void OnStop() // optional
-		{
-		}
-
-		virtual void OnUpdate(uint32_t deltaTime)
-		{
-			float t = sensor.readTemperature();
-			long a = sensor.readPressure(altitude);
-			_callback(a, t);
-		}
+    virtual bool OnStart();
+    virtual void OnStop();
+    virtual void OnUpdate(uint32_t deltaTime);
 };
+
+#endif /* TASKBMP180_HPP */
