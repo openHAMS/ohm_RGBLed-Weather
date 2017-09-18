@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "taskBmp180.hpp"
 #include <ExpFilter.h>
+#include <ArduinoLog.h>
 
 TaskReadWeather::TaskReadWeather(action function, uint16_t alt, uint32_t timeInterval):
     Task(timeInterval),
@@ -14,18 +15,13 @@ TaskReadWeather::TaskReadWeather(action function, uint16_t alt, uint32_t timeInt
 
 bool TaskReadWeather::OnStart()
 {
-    #if DEBUG == 1
-        counter = 0;
-        Serial.println("[SENSOR] task started...");
-    #endif
+    Log.notice("[SENSOR] task started...");
     return true;
 }
 
 void TaskReadWeather::OnStop()
 {
-    #if DEBUG == 1
-        Serial.println("[SENSOR] task stopped.");
-    #endif
+    Log.notice("[SENSOR] task stopped.");
 }
 
 void TaskReadWeather::OnUpdate(uint32_t deltaTime)
@@ -46,20 +42,6 @@ void TaskReadWeather::OnUpdate(uint32_t deltaTime)
         filterInited = true;
     }
 
-    #if DEBUG == 1
-        Serial.print("[SENSOR] update ");
-        Serial.print(counter);
-        Serial.println();
-        counter++;
-        Serial.print(ar);
-        Serial.print(":");
-        Serial.print(a);
-        Serial.print(" ");
-        Serial.print(tr);
-        Serial.print(":");
-        Serial.print(t);
-        Serial.println(),
-    #endif
-
+    Log.verbose("[BMP180] atm: %l:%l temp: %D:%D ", ar, a, tr, t);
     callback(a, t);
 }

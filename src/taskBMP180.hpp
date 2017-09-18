@@ -1,7 +1,6 @@
 #ifndef TASKBMP180_HPP
 #define TASKBMP180_HPP
 
-#include <Arduino.h>
 #include <Task.h>
 #include <Wire.h>
 #include <Sodaq_BMP085.h>
@@ -16,7 +15,6 @@ public:
 private:
     const action callback;
     const uint16_t ALTITUDE;
-    int counter;
     bool filterInited = false;
     Sodaq_BMP085 sensor;
     ExpFilter<long> atmFilter;

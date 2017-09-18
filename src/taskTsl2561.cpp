@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "taskTsl2561.hpp"
 #include <ExpFilter.h>
+#include <ArduinoLog.h>
 
 TaskReadLight::TaskReadLight(char* addr, action function, uint32_t timeInterval):
     Task(timeInterval),
@@ -15,6 +16,7 @@ bool TaskReadLight::OnStart()
 {
     if(!sensor.begin())
     {
+        Log.error("[TSL2561] ERROR sensor not found");
         return false;
     }
     // setup config
@@ -43,6 +45,7 @@ void TaskReadLight::OnUpdate(uint32_t deltaTime)
     {
         lightFilter.Filter(event.light);
     }
+    Log.verbose("[TSL2561] %D:%D", event.light, lightFilter.Current());
     // convert to string
     char light[8];
     String(lightFilter.Current()).toCharArray(light, sizeof(light));
