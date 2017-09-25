@@ -3,21 +3,23 @@
 
 #include <Task.h>
 #include <Wire.h>
-#include <Sodaq_BMP085.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP180_U.h>
 #include <ExpFilter.h>
 
 class TaskReadWeather : public Task
 {
 public:
-    typedef void(*action)(long a, float t);
-    TaskReadWeather(action function, uint16_t alt, uint32_t timeInterval);
+    typedef void(*action)(const char* address, char* message);
+    TaskReadWeather(char* atmAddr, char* tempAddr, action function, uint16_t alt, uint32_t timeInterval);
 
 private:
     const action callback;
+    const char* ATM_ADDRESS;
+    const char* TEMP_ADDRESS;
     const uint16_t ALTITUDE;
-    bool filterInited = false;
-    Sodaq_BMP085 sensor;
-    ExpFilter<long> atmFilter;
+    Adafruit_BMP180_Unified sensor = Adafruit_BMP180_Unified(10085);
+    ExpFilter<float> atmFilter;
     ExpFilter<float> tempFilter;
 
     virtual bool OnStart();

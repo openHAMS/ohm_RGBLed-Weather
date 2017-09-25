@@ -15,8 +15,7 @@ public:
 
 private:
     const action callback;
-    //bool filterInited = false;
-    const char* address;
+    const char* ADDRESS;
     Adafruit_TSL2561_Unified sensor = Adafruit_TSL2561_Unified(TSL2561_ADDR_FLOAT, 12345);
     ExpFilter<float> lightFilter;
 

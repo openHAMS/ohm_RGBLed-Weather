@@ -18,8 +18,6 @@
 //#include "RGBLed.hpp"
 
 
-#define DEBUG        0
-
 #define ALTITUDE   210  // Altitude via GPS - Miskolc, Diósgyőr
 
 // LED pins
@@ -52,7 +50,7 @@ TaskManager taskManager;
 void sendData(long a, float t);
 void sendMqttMessage(const char* address, char* message);
 // Tasks
-TaskReadWeather taskReadWeather(sendData, ALTITUDE, MsToTaskTime(1000));
+TaskReadWeather taskReadWeather(atmAddr, tempAddr, sendMqttMessage, ALTITUDE, MsToTaskTime(1000));
 TaskReadLight taskReadLight(lightAddr, sendMqttMessage, MsToTaskTime(1000));
 TaskMqttConnect taskMqttConnect(&mqttClient, MsToTaskTime(2500));
 
@@ -61,42 +59,26 @@ TaskMqttConnect taskMqttConnect(&mqttClient, MsToTaskTime(2500));
 
 void sendMqttMessage(const char* address, char* message)
 {
-    mqttClient.publish(address, 1, true, message);
-    Log.trace("[MQTT] Sending: %s --> %s", address, message);
+    if (mqttClient.connected())
+    {
+        mqttClient.publish(address, 1, true, message);
+        Log.trace("[MQTT] Sending: %s --> %s", address, message);
+    }
 }
-
-// move data formatting into task
-// use generic send via mqtt as callback
-void sendData(long a, float t)
-{
-    char atm [8];
-    char temp[8];
-    String(a / 100.0).toCharArray(atm, sizeof(atm));
-    String(t).toCharArray(temp, sizeof(temp));
-    mqttClient.publish(atmAddr, 1, true, atm);
-    mqttClient.publish(tempAddr, 1, true, temp);
-}
-
 
 void onMqttConnect(bool sessionPresent)
 {
-    taskManager.StopTask(&taskMqttConnect);
-
     Log.notice("[MQTT] Connected!");
     uint16_t packetIdSub = mqttClient.subscribe(ledAddr, 1);
-    Log.trace("[MQTT] Subscribing at QoS 1, packetId: %d", packetIdSub);
+    Log.verbose("[MQTT] Subscribing at QoS 1, packetId: %d", packetIdSub);
     mqttClient.publish(deviceAddr, 1, true, "1");
-
-    taskManager.StartTask(&taskReadWeather);
-    taskManager.StartTask(&taskReadLight);
+    taskManager.StopTask(&taskMqttConnect);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 {
     Log.warning("[MQTT] Disconnected...");
     taskManager.StartTask(&taskMqttConnect);
-    taskManager.StopTask(&taskReadWeather);
-    taskManager.StopTask(&taskReadLight);
 }
 
 void onMqttSubscribe(uint16_t packetId, uint8_t qos)
@@ -162,7 +144,7 @@ void setup()
     Serial.begin(115200);
     Serial.println();
     Serial.println();
-    Log.begin(LOG_LEVEL_TRACE, &Serial);
+    Log.begin(LOG_LEVEL_NOTICE, &Serial);
 
     Log.notice("[WiFi] Connecting...");
     WiFiManager wifiManager;
@@ -181,6 +163,8 @@ void setup()
 
     taskManager.Setup();
     taskManager.StartTask(&taskMqttConnect);
+    taskManager.StartTask(&taskReadWeather);
+    taskManager.StartTask(&taskReadLight);
 }
 
 void loop()

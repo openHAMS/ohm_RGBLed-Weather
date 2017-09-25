@@ -3,45 +3,69 @@
 #include <ExpFilter.h>
 #include <ArduinoLog.h>
 
-TaskReadWeather::TaskReadWeather(action function, uint16_t alt, uint32_t timeInterval):
+TaskReadWeather::TaskReadWeather(char* atmAddr, char* tempAddr, action function, uint16_t alt, uint32_t timeInterval):
     Task(timeInterval),
+    ATM_ADDRESS(atmAddr),
+    TEMP_ADDRESS(tempAddr),
     ALTITUDE(alt),
-    atmFilter(100000L, 10),
-    tempFilter(25, 10),
+    atmFilter(1000, 5),
+    tempFilter(25, 5),
     callback(function)
-{
-    sensor.begin();
-}
+{ }
 
 bool TaskReadWeather::OnStart()
 {
-    Log.notice("[SENSOR] task started...");
+    if(!sensor.begin())
+    {
+        Log.error("[BMP180] ERROR sensor not found");
+        return false;
+    }
+    // read initial pressure
+    sensors_event_t event;
+    sensor.getEvent(&event);
+    // set initial filter value
+    atmFilter.SetValue(sensor.seaLevelForAltitude(ALTITUDE, event.pressure));
+    // get temperature event
+    sensor.getTempEvent(&event);
+    tempFilter.SetValue(event.temperature);
+    Log.verbose("[BMP180] atm: %D:%D temp: %D:%D ",
+        sensor.seaLevelForAltitude(ALTITUDE, event.pressure), atmFilter.Current(),
+        event.temperature, tempFilter.Current());
+
+    // start successful
+    Log.notice("[BMP180] task started...");
     return true;
 }
 
 void TaskReadWeather::OnStop()
 {
-    Log.notice("[SENSOR] task stopped.");
+    Log.notice("[BMP180] task stopped.");
 }
 
 void TaskReadWeather::OnUpdate(uint32_t deltaTime)
 {
-    long ar = sensor.readPressure(ALTITUDE);
-    float tr = sensor.readTemperature();
-    long a;
-    float t;
-    if (filterInited)
+    // read sensor
+    sensors_event_t event;
+    // pressure
+    sensor.getEvent(&event);
+    if (event.pressure)
     {
-        a = atmFilter.Filter(ar);
-        t = tempFilter.Filter(tr);
+        atmFilter.Filter(sensor.seaLevelForAltitude(ALTITUDE, event.pressure));
     }
-    else
+    // temperature
+    sensor.getTempEvent(&event);
+    if (event.temperature)
     {
-        a = atmFilter.SetValue(ar);
-        t = tempFilter.SetValue(tr);
-        filterInited = true;
+        tempFilter.Filter(event.temperature);
     }
 
-    Log.verbose("[BMP180] atm: %l:%l temp: %D:%D ", ar, a, tr, t);
-    callback(a, t);
+    Log.verbose("[BMP180] atm: %D temp: %D ", atmFilter.Current(), tempFilter.Current());
+
+    char atm[8];
+    String(atmFilter.Current()).toCharArray(atm, sizeof(atm));
+    char temp[8];
+    String(tempFilter.Current()).toCharArray(temp, sizeof(temp));
+
+    callback(ATM_ADDRESS, atm);
+    callback(TEMP_ADDRESS, temp);
 }
