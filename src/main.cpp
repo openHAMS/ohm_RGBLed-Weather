@@ -11,8 +11,8 @@
 #include <Task.h>
 #include "taskMqttConnect.hpp"
 // include sensors
-#include "taskBmp180.hpp"
-#include "taskTsl2561.hpp"
+#include "tasks/bmp180/taskBmp180.hpp"
+#include "tasks/tsl2561/taskTsl2561.hpp"
 
 //#include "Color.hpp"
 //#include "RGBLed.hpp"
