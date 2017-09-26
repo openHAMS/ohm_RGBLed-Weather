@@ -1,0 +1,12 @@
+[submodule "src/tasks/bmp180"]
+	path = src/tasks/bmp180
+	url = https://github.com/openHAMS/ohm_BMP180.git
+[submodule "src/tasks/tsl2561"]
+	path = src/tasks/tsl2561
+	url = https://github.com/openHAMS/ohm_TSL2561.git
+[submodule "lib/Adafruit_BMP180_U"]
+	path = lib/Adafruit_BMP180_U
+	url = https://github.com/openHAMS/Adafruit_BMP085_Unified.git
+[submodule "lib/ArduinoLog"]
+	path = lib/ArduinoLog
+	url = https://github.com/thijse/Arduino-Log.git
