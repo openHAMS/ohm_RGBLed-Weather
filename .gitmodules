@@ -7,3 +7,6 @@
 [submodule "lib/Adafruit_BMP180_U"]
 	path = lib/Adafruit_BMP180_U
 	url = https://github.com/openHAMS/Adafruit_BMP085_Unified.git
+[submodule "lib/ArduinoLog"]
+	path = lib/ArduinoLog
+	url = https://github.com/thijse/Arduino-Log.git
